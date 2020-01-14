@@ -19,6 +19,11 @@ class PostsController extends Controller
         return view('posts/create');
     }
 
+    public function index()
+    {
+
+    }
+
     public function store()
     {
         $data = request()->validate([
