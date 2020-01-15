@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use App\User;
 use Intervention\Image\Facades\Image as Image;
+use Illuminate\Support\Facades\Cache;
 
 
 class ProfilesController extends Controller
@@ -13,8 +14,21 @@ class ProfilesController extends Controller
     //
     public function index(User $user)
     {
-       $follows = (auth()->user()) ? auth()->user()->following->contains($user->id) : false;
-        return view('profiles.index',compact( 'user',  'follows') );
+        $follows = (auth()->user()) ? auth()->user()->following->contains($user->id) : false;
+
+        $postCount = Cache::remember(
+            'cache.posts.'.$user->id, 
+            now()->addSeconds(30), 
+            function() use ($user)
+            {
+                return $user->posts->count();
+            }
+        );
+
+        $followersCount = $user->profile->followers->count();
+        $followingCount = $user->following->count();
+
+        return view('profiles.index',compact( 'user',  'follows', 'postCount', 'followersCount', 'followingCount') );
          
     }
 
@@ -41,8 +55,12 @@ class ProfilesController extends Controller
         {
 
             $imagePath = request('image')->store('profile','public');
-            $image = Image::make(public_path("storage/{$imagePath}"))->fit(1000, 1000);
-            $image->save();
+            //$image = Image::make(public_path("storage/{$imagePath}"))->fit(1000, 1000);
+            //$image->save();
+
+            $image = Image::make(storage_path()."/app/public/{$imagePath}")->fit(1000, 1000);
+            $image->save(public_path("storage/{$imagePath}"));
+	
 
             $imageArray = ['image' => $imagePath];
 
